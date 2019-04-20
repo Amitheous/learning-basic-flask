@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+  <title>Flask App</title>
+  <style>
+    #drop {
+      border: 10px solid #ccc;
+      width: 50vw;
+      height: 100%;
+      padding: 20px;
+      margin: 20px auto;
+      text-align: center;
+    }
+
+    #drop.hover {
+      border: 10px solid green;
+    }
+
+    body {
+      padding: 0px;
+      margin: 0px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="drop">
+    <p>Drop file here</p>
+  </div>
+  <script>
+    const drop = document.getElementById("drop");
+    let start, end, time;
+    const reader = new FileReader();
+    const reader1 = new FileReader();
+    drop.ondragover = function () {
+      this.className = "hover";
+      return false;
+    };
+    drop.ondragend = function () {
+      this.className = "";
+      return false;
+    };
+    drop.ondrop = function (e) {
+      this.className = "";
+      e.preventDefault();
+      let files = [];
+      const items = e.dataTransfer.items;
+      for (var i = 0; i < items.length; i++) {
+        var item = items[i].webkitGetAsEntry();
+        if (item.isFile) {
+          item.file(file => {
+            const reader = new FileReader();
+            reader.readAsText(file);
+            reader.onload = e => {
+              fetch('/upload', {
+
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                  data: e.target.result
+                })
+              }).then(res => console.log(res.status)).catch(err => console.log(err))
+            }
+          })
+        }
+        // fetch('/upload', {
+        //   method: "POST",
+        //   mode: "cors",
+        //   credentials: "same-origin",
+        //   body: item
+        // })
+        return false;
+      }
+    };
+  </script>
+</body>
+
+</html>
