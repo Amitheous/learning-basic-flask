@@ -26,12 +26,14 @@ def index():
 
 
 @app.route('/upload', methods=['POST'])
-@jit
+# @jit
 def uploadFile():
     start = time.time()
     if request.method == 'POST':
 
         csvFormat = json.loads(request.data)['data']
+        fileName = json.loads(request.data)['file']
+        print("NAME OF FILE: ", fileName)
         dFrame = pd.read_csv(StringIO(csvFormat))
         with open('data.txt', 'w') as out:
             dFrame.to_csv(out, index=False)
@@ -43,11 +45,33 @@ def uploadFile():
             # pool = mp.Pool(processes=num_processes)
             # result = pool.map(adding(newDFrame), chunks)
             # print(result)
-            result = 0
-            for row in newDFrame.index:
-                result += newDFrame.loc[row]['RefSubNets']
-            print(result)
-
+            # print(newDFrame)
+            # print('FILENAME CHECK FOR "Sales": ', fileName.__contains__('Sales'))
+            if fileName.__contains__('insurance_sample'):
+                result = 0
+                for row in newDFrame.index:
+                    if row == 0:
+                        print("Starting...")
+                    result += newDFrame.loc[row]['tiv_2012']
+                print('Average Total Insurance Value in 2012: ' , result/len(newDFrame.index))
+                print("Number of Rows: ", len(newDFrame.index))
+            if fileName.__contains__('Sales Records'):
+                combUnits = 0
+                combPrice = 0
+                combCost = 0
+                combProfit = 0
+                for row in newDFrame.index:
+                    if row == 0:
+                        print("Starting analysis...")
+                    combUnits += newDFrame.loc[row]['Units Sold']
+                    combPrice += newDFrame.loc[row]['Unit Price']
+                    combCost += newDFrame.loc[row]['Unit Cost']
+                    combProfit += newDFrame.loc[row]['Total Profit']
+                print('Average Units Sold: ', round(combUnits/len(newDFrame.index), 2))
+                print('Average Unit Price: ', round(combPrice/len(newDFrame.index), 2))
+                print('Average Unit Cost: ', round(combCost/len(newDFrame.index), 2))
+                print('Average Profit: ', round(combProfit/len(newDFrame.index), 2))
+                print("Number of Records Processed: ", len(newDFrame.index))
             # print(readDFrame.index)
 
             # print(result)

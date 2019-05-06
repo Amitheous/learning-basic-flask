@@ -63,7 +63,8 @@
                   "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                  data: e.target.result
+                  data: e.target.result,
+                  file: file.name
                 })
               }).then(res => console.log(res.status)).catch(err => console.log(err))
             }
