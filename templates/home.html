@@ -1,85 +1,202 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-  <title>Flask App</title>
-  <style>
-    #drop {
-      border: 10px solid #ccc;
-      width: 50vw;
-      height: 100%;
-      padding: 20px;
-      margin: 20px auto;
-      text-align: center;
-    }
-
-    #drop.hover {
-      border: 10px solid green;
-    }
-
-    body {
-      padding: 0px;
-      margin: 0px;
-    }
-  </style>
-</head>
-
-<body>
-  <div id="drop">
-    <p>Drop file here</p>
-  </div>
-  <script>
-    const drop = document.getElementById("drop");
-    let start, end, time;
-    const reader = new FileReader();
-    const reader1 = new FileReader();
-    drop.ondragover = function () {
-      this.className = "hover";
-      return false;
-    };
-    drop.ondragend = function () {
-      this.className = "";
-      return false;
-    };
-    drop.ondrop = function (e) {
-      this.className = "";
-      e.preventDefault();
-      let files = [];
-      const items = e.dataTransfer.items;
-      for (var i = 0; i < items.length; i++) {
-        var item = items[i].webkitGetAsEntry();
-        if (item.isFile) {
-          item.file(file => {
-            const reader = new FileReader();
-            reader.readAsText(file);
-            reader.onload = e => {
-              fetch('/upload', {
-
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                  data: e.target.result,
-                  file: file.name
-                })
-              }).then(res => console.log(res.status)).catch(err => console.log(err))
-            }
-          })
-        }
-        // fetch('/upload', {
-        //   method: "POST",
-        //   mode: "cors",
-        //   credentials: "same-origin",
-        //   body: item
-        // })
-        return false;
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Flask App</title>
+    <style>
+      #drop {
+        border: 10px solid #ccc;
+        width: 50vw;
+        height: 100%;
+        padding: 20px;
+        margin: 20px auto;
+        text-align: center;
       }
-    };
-  </script>
-</body>
 
+      #drop.hover {
+        border: 10px solid green;
+      }
+
+      body {
+        padding: 0px;
+        margin: 0px;
+      }
+      #boxes,
+      #results {
+        width: 100vw;
+        text-align: center;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="drop">
+      <p>Drop file here</p>
+    </div>
+    <form id="boxes"></form>
+    <div id="results"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js"></script>
+    <script>
+      const drop = document.getElementById("drop");
+      let start, end, time;
+      const reader = new FileReader();
+      const reader1 = new FileReader();
+      drop.ondragover = function() {
+        this.className = "hover";
+        return false;
+      };
+      drop.ondragend = function() {
+        this.className = "";
+        return false;
+      };
+      drop.ondrop = function(e) {
+        this.className = "";
+        e.preventDefault();
+        let files = [];
+        const items = e.dataTransfer.items;
+        for (var i = 0; i < items.length; i++) {
+          var item = items[i].webkitGetAsEntry();
+
+          // Check if file or folder
+          if (item.isFile) {
+            // If file check file name
+            if (item.name.includes("Sales")) {
+              // Create values to check based on file name
+              document.getElementById("boxes").innerHTML = null;
+              const boxes = ["sold", "price", "cost", "profit"];
+              boxes.forEach(box => {
+                var checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.name = box;
+                checkbox.id = box;
+
+                var label = document.createElement("label");
+                label.htmlFor = box;
+                label.appendChild(document.createTextNode(box));
+                document.getElementById("boxes").appendChild(checkbox);
+                document.getElementById("boxes").appendChild(label);
+              });
+              // Make submission option for values created
+              const submitButton = document.createElement("button");
+              submitButton.type = "input";
+              submitButton.id = "submitButton";
+              submitButton.innerText = "Submit";
+              document.getElementById("boxes").appendChild(submitButton);
+              // Create baseline object to manipulate
+              let checker = {
+                sold: false,
+                price: false,
+                cost: false,
+                profit: false
+              };
+              document.getElementById("boxes").addEventListener("submit", e => {
+                e.preventDefault();
+                document.getElementById("results").innerHTML = "Processing...";
+                const boxArray = document.getElementById("boxes").childNodes;
+                boxArray.forEach(child => {
+                  // Check inputs for true or false value
+                  if (child.tagName === "INPUT") {
+                    if (child.checked) {
+                      checker[child.name] = true;
+                    }
+                  }
+                });
+                // Push the true values to server to narrow scope
+                // Push file itself to server for processing
+                // Include file name for custom processing
+                item.file(file => {
+                  const reader = new FileReader();
+                  reader.readAsText(file);
+                  reader.onload = e => {
+                    axios
+                      .post("/upload", {
+                        data: e.target.result,
+                        file: file.name,
+                        fields: checker
+                      })
+                      .then(res => {
+                        const data = res.data;
+                        if (data) {
+                          const results = document.getElementById("results");
+                          results.innerHTML = null;
+                          data.forEach(element => {
+                            if (element.sold) {
+                              const dataDiv = document.createElement("div");
+                              dataDiv.innerHTML = `
+                                  <h4>Average Units Sold</h4>
+                                  <p>$${element.sold}</p>
+                                `;
+                              results.appendChild(dataDiv);
+                            }
+                            if (element.cost) {
+                              const dataDiv = document.createElement("div");
+                              dataDiv.innerHTML = `
+                                  <h4>Average Cost</h4>
+                                  <p>$${element.cost}</p>
+                                `;
+                              results.appendChild(dataDiv);
+                            }
+                            if (element.price) {
+                              const dataDiv = document.createElement("div");
+                              dataDiv.innerHTML = `
+                                  <h4>Average Price</h4>
+                                  <p>$${element.price}</p>
+                                `;
+                              results.appendChild(dataDiv);
+                            }
+                            if (element.profit) {
+                              const dataDiv = document.createElement("div");
+                              dataDiv.innerHTML = `
+                                  <h4>Average Profit</h4>
+                                  <p>$${element.profit}</p>
+                                `;
+                              results.appendChild(dataDiv);
+                            }
+                            if (element.processed) {
+                              const dataDiv = document.createElement("div");
+                              dataDiv.innerHTML = `
+                                  <h4>Number of Records Processed</h4>
+                                  <p>${element.processed}</p>
+                                `;
+                              results.appendChild(dataDiv);
+                            }
+                          });
+                          // const dataDiv = document.createElement("div");
+                          // dataDiv.innerHTML = `
+                          // <h4>Average Cost</h4>
+                          // <p>$${data.cost}</p>
+                          // <h4>Average Price</h4>
+                          // <p>$${data.price}</p>
+                          // <h4>Average Profit</h4>
+                          // <p>$${data.profit}</p>
+                          // <h4>Average Units Sold</h4>
+                          // <p>$${data.sold}</p>
+                          // <h5>Number of records processed</h5>
+                          // <p>${data.processed}</p>
+                          // `;
+
+                          // document
+                          //   .getElementById("results")
+                          //   .appendChild(dataDiv);
+                        }
+                      })
+                      .catch(err => console.log(err));
+                  };
+                });
+              });
+            }
+          }
+          // fetch('/upload', {
+          //   method: "POST",
+          //   mode: "cors",
+          //   credentials: "same-origin",
+          //   body: item
+          // })
+          return false;
+        }
+      };
+    </script>
+  </body>
 </html>
